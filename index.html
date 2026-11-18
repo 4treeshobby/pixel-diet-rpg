@@ -292,11 +292,17 @@ document.addEventListener("DOMContentLoaded",function(){setTheme(document.docume
     </div>
     <label class="check"><input type="checkbox" id="pGlasses"> 안경 쓰기</label>
     <h2 style="margin-top:8px">모험 목표</h2>
+    <label for="pMode">사용 목적<select id="pMode"><option value="diet">🔥 다이어트 (감량)</option><option value="bulk">🍚 벌크업 (증량)</option><option value="muscle">💪 근력량 증가 (골격근↑)</option><option value="keep">⚖️ 체중 유지</option></select></label>
+    <p class="small muted" id="pModeHint" style="margin:0"></p>
+    <div class="row" id="smmRow" hidden>
+      <label for="pSmmStart">지금 골격근량(kg)<input type="number" id="pSmmStart" step="0.1" min="10" max="80"></label>
+      <label for="pSmmGoal">목표 골격근량(kg)<input type="number" id="pSmmGoal" step="0.1" min="10" max="80"></label>
+    </div>
     <div class="row">
       <label for="pHeight">키(cm)<input type="number" id="pHeight" step="0.1" min="100" max="230" required></label>
       <label for="pStart">시작 체중(kg)<input type="number" id="pStart" step="0.1" min="30" max="250" required></label>
-      <label for="pGoal">목표 체중(kg)<input type="number" id="pGoal" step="0.1" min="30" max="250" required></label>
-      <label for="pKcal">하루 목표 칼로리<input type="number" id="pKcal" step="10" min="800" max="5000" value="1500" required></label>
+      <label for="pGoal" id="pGoalLbl">목표 체중(kg)<input type="number" id="pGoal" step="0.1" min="30" max="250" required></label>
+      <label for="pKcal" id="pKcalLbl">하루 목표 칼로리<input type="number" id="pKcal" step="10" min="800" max="5000" value="1500" required></label>
       <label for="pNa">하루 나트륨 기준(mg)<input type="number" id="pNa" step="100" min="500" max="6000" value="2000" required></label>
       <label for="pStartDate">시작일<input type="date" id="pStartDate" required></label>
     </div>
@@ -564,7 +570,7 @@ document.addEventListener("DOMContentLoaded",function(){setTheme(document.docume
     <div class="cal-dow" aria-hidden="true"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
     <div class="cal-grid" id="calGrid"></div>
     <p class="small" id="calSum" style="margin:10px 0 4px"></p>
-    <p class="small muted cal-legend" style="margin:0"><span class="cdot ex hit"></span> 운동 완료 · <span class="cdot ex part"></span> 조금 함 · <span class="cdot dt ok"></span> 식단 목표 이하 · <span class="cdot dt over"></span> 초과 · <span class="cdot rest"></span> 회복 기간</p>
+    <p class="small muted cal-legend" style="margin:0"><span class="cdot ex hit"></span> 운동 완료 · <span class="cdot ex part"></span> 조금 함 · <span class="cdot dt ok"></span> 식단 목표 달성 · <span class="cdot dt over"></span> 목표 벗어남 · <span class="cdot rest"></span> 회복 기간</p>
   </div>
   <div class="box" id="calDetail"></div>
 </section>
@@ -632,13 +638,29 @@ function kindOf(name,cat){
 const COSTUMES=[["default","기본 복장"],["gym","헬스"],["treadmill","트레드밀"],["cycle","사이클"],["stairs","천국의계단"],["rope","줄넘기"],["running","러닝"],["basketball","농구"],["crossfit","크로스핏"],["pole","폴댄스"],["kendo","검도"],["rest","회복 주간"]];
 const PRIORITY=["kendo","pole","basketball","crossfit","running","gym","treadmill","cycle","stairs","rope"];
 const BOSS_NAMES=[["떡볶이 슬라임","slime"],["라면 골렘","golem"],["치킨 드래곤","dragon"],["케이크 마녀","witch"],["야식 리치","lich"],["마라탕 오우거","golem"],["탕후루 기사","dragon"],["피자 거인","slime"]];
-function bossList(P){
-  const out=[{kg:P.start,name:"출발 마을",type:"start"}];
-  if(P.goal>=P.start){out.push({kg:P.goal,name:"유지의 성",type:"king"});return out}
-  const step=(P.start-P.goal)>40?10:5;
-  let k=Math.floor((P.start-0.01)/step)*step;let i=0;
-  while(k>P.goal+0.5&&out.length<7){out.push({kg:k,name:BOSS_NAMES[i%BOSS_NAMES.length][0],type:BOSS_NAMES[i%BOSS_NAMES.length][1]});k-=step;i++}
-  out.push({kg:P.goal,name:"요요 대마왕",type:"king"});
+const GOALS={
+  diet:{label:"다이어트 (감량)",dir:-1,metric:"w",kcal:"max",king:"요요 대마왕",verb:"감량",legend:"전설의 다이어터",streak:"절제의 3연속",names:BOSS_NAMES,
+    hint:"체중을 줄이는 모드예요. 하루 칼로리는 목표 이하로 먹으면 달성이에요."},
+  bulk:{label:"벌크업 (증량)",dir:1,metric:"w",kcal:"min",king:"멸치 대마왕",verb:"증량",legend:"전설의 벌크업러",streak:"든든한 3연속",
+    names:[["굶주림 슬라임","slime"],["입짧은 골렘","golem"],["소식 드래곤","dragon"],["야근 마녀","witch"],["불면 리치","lich"]],
+    hint:"체중을 늘리는 모드예요. 하루 칼로리는 목표 이상 먹으면 달성이에요."},
+  muscle:{label:"근력량 증가 (골격근↑)",dir:1,metric:"smm",kcal:"near",king:"근손실 대마왕",verb:"골격근 증가",legend:"전설의 근육왕",streak:"균형의 3연속",
+    names:[["게으름 슬라임","slime"],["소파 골렘","golem"],["스마트폰 드래곤","dragon"],["핑계 마녀","witch"],["작심삼일 리치","lich"]],
+    hint:"골격근량을 늘리는 모드예요. 인바디의 골격근량으로 보스를 잡고, 칼로리는 목표 ±10% 안이면 달성이에요."},
+  keep:{label:"체중 유지",dir:0,metric:"w",kcal:"near",king:"요요 대마왕",verb:"유지",legend:"전설의 유지어터",streak:"균형의 3연속",
+    names:[["폭식 슬라임","slime"],["회식 골렘","golem"],["야식 드래곤","dragon"],["주말 마녀","witch"],["명절 리치","lich"]],
+    hint:"지금 체중을 지키는 모드예요. 목표 체중 ±1.5kg 안에서 버틴 주가 쌓일수록 보스를 잡고, 칼로리는 목표 ±10% 안이면 달성이에요."}};
+const goalOf=P=>GOALS[(P&&P.mode)||"diet"];
+const BAND=1.5;
+function bossList(P,G,s,g){
+  const pick=i=>G.names[i%G.names.length];
+  if(G.dir===0){const out=[{kg:0,name:"출발 마을",type:"start"}];[2,4,8,12].forEach((w,i)=>out.push({kg:w,name:pick(i)[0],type:pick(i)[1]}));out.push({kg:24,name:G.king,type:"king"});return out}
+  const out=[{kg:s,name:"출발 마을",type:"start"}];
+  if((g-s)*G.dir<=0){out.push({kg:g,name:G.king,type:"king"});return out}
+  const span=Math.abs(g-s);const step=G.metric==="smm"?1:span>40?10:span>12?5:2;
+  let k=G.dir<0?Math.floor((s-0.01)/step)*step:Math.ceil((s+0.01)/step)*step;let i=0;
+  while((g-k)*G.dir>0.5&&out.length<7){out.push({kg:k,name:pick(i)[0],type:pick(i)[1]});k+=step*G.dir;i++}
+  out.push({kg:g,name:G.king,type:"king"});
   return out;
 }
 function compute(){
@@ -655,9 +677,10 @@ function compute(){
   const lastWith=k=>{for(let i=ws.length-1;i>=0;i--)if(ws[i][k]!=null)return ws[i];return null};
   const firstWith=k=>ws.find(w=>w[k]!=null)||null;
   const prevWith=k=>{let n=0;for(let i=ws.length-1;i>=0;i--)if(ws[i][k]!=null){n++;if(n===2)return ws[i]}return null};
-  const tol=P.kcal*1.02;
+  const G=goalOf(P);const tol=P.kcal*1.02;
+  const kOk=k=>G.kcal==="max"?k<=P.kcal*1.02:G.kcal==="min"?k>=P.kcal*0.98:Math.abs(k-P.kcal)<=P.kcal*0.1;
   const completedDays=Object.keys(days).filter(d=>d<tIso).sort();
-  const kcalOkDays=completedDays.filter(d=>days[d].kcal<=tol);
+  const kcalOkDays=completedDays.filter(d=>kOk(days[d].kcal));
   const naOkDays=completedDays.filter(d=>days[d].na<=P.na);
   const exDates=Object.keys(ex).sort();
   const Q=P.quest;
@@ -668,10 +691,18 @@ function compute(){
       const hit=dates.filter(d=>ex[iso(d)]&&ex[iso(d)].min>=Q.min).length;
       const min=dates.reduce((a,d)=>a+(ex[iso(d)]?ex[iso(d)].min:0),0);
       weeks.push({start:w,dates,hit,min,rest:dates.some(inRest),current:+w===+monday(T),ok:hit>=Q.days});w=addD(w,7)}}
-  const lost=Math.max(0,P.start-cur);
+  const smmL=lastWith("smm");
+  const mS=G.metric==="smm"?(P.smmStart||(firstWith("smm")||{}).smm||0):P.start,mG=G.metric==="smm"?(P.smmGoal||mS+3):P.goal;
+  const mC=G.metric==="smm"?(smmL?smmL.smm:mS):cur;
+  const prog=G.dir?Math.max(0,(mC-mS)*G.dir):0;
+  // 유지 모드: 시작일부터 끝난 주마다 그 주 마지막 체중이 목표 ±BAND 안이면 1주
+  let kept=0;const inBand=Math.abs(cur-P.goal)<=BAND;
+  if(G.dir===0){let w=monday(parse(P.startDate));const endW=monday(T);
+    while(w<endW){const we=iso(addD(w,6));let last=P.start;series.forEach(p=>{if(iso(p.d)<=we)last=p.w});if(Math.abs(last-P.goal)<=BAND)kept++;w=addD(w,7)}}
+  const lost=prog;
   const weekOk=weeks.filter(w=>w.ok).length;
   const xpParts=[
-    ["시작 대비 감량 "+lost.toFixed(1)+"kg","1kg당 100",Math.round(lost*100)],
+    G.dir===0?["목표 체중 유지 "+kept+"주","주당 40",kept*40]:G.metric==="smm"?["골격근 +"+prog.toFixed(1)+"kg","1kg당 300",Math.round(prog*300)]:["시작 대비 "+G.verb+" "+prog.toFixed(1)+"kg","1kg당 100",Math.round(prog*100)],
     [Q.min+"분 이상 운동한 날 "+exDays.length+"일","하루 30",exDays.length*30],
     ["주간 퀘스트 달성 "+weekOk+"주","주당 50",weekOk*50],
     ["체중·인바디 기록 "+ws.length+"회","회당 20",ws.length*20],
@@ -681,7 +712,7 @@ function compute(){
   const xp=xpParts.reduce((a,p)=>a+p[2],0);
   const need=L=>100*(L-1)+25*(L-1)*(L-2);
   let L=1;while(need(L+1)<=xp)L++;
-  const TITLES=[[1,"운동 새싹"],[3,"헬스 견습생"],[5,"땀방울 기사"],[7,"철인 수련생"],[10,"근육 마법사"],[13,"바디 챔피언"],[16,"전설의 다이어터"]];
+  const TITLES=[[1,"운동 새싹"],[3,"헬스 견습생"],[5,"땀방울 기사"],[7,"철인 수련생"],[10,"근육 마법사"],[13,"바디 챔피언"],[16,G.legend]];
   const doneKinds=new Set(["default"]);Object.values(ex).forEach(e=>e.kinds.forEach(k=>doneKinds.add(k)));if(cond.length)doneKinds.add("rest");
   let auto="default",reason="오늘은 아직 운동 기록이 없어요";const te=ex[tIso];
   if(te){auto=PRIORITY.find(k=>te.kinds.has(k))||"gym";reason="오늘 "+[...new Set(te.items.filter(i=>i.min).map(i=>i.name))].join("·")+" 완료"}
@@ -689,9 +720,12 @@ function compute(){
   else if(exDates.length){const ld=exDates[exDates.length-1];auto=PRIORITY.find(k=>ex[ld].kinds.has(k))||"gym";reason="최근 운동 "+mdw(parse(ld))}
   const bmi=cur/Math.pow(P.height/100,2);
   const pbfL=lastWith("pbf");const male=P.look.gender==="m";const fatLike=pbfL?pbfL.pbf:bmi*(male?1.0:1.4);
-  const bosses=bossList(P);
+  const bosses=bossList(P,G,mS,mG);
+  const done=b=>G.dir===0?kept>=b.kg:(mC-b.kg)*G.dir>=-1e-9;
+  const left=b=>G.dir===0?b.kg-kept:(b.kg-mC)*G.dir;
   return {P,T,tIso,days,ex,cond,inRest,ws,series,cur,lastWith,firstWith,prevWith,tol,completedDays,kcalOkDays,naOkDays,exDates,exDays,weeks,lost,xpParts,xp,L,
-    into:xp-need(L),span:need(L+1)-need(L),title:TITLES.filter(t=>L>=t[0]).pop()[1],doneKinds,auto,reason,bmi,fatLike,bosses,crown:bosses.length>2&&cur<=bosses[1].kg};
+    into:xp-need(L),span:need(L+1)-need(L),title:TITLES.filter(t=>L>=t[0]).pop()[1],doneKinds,auto,reason,bmi,fatLike,bosses,crown:bosses.length>2&&done(bosses[1]),
+    G,kOk,mS,mG,mC,prog,kept,inBand,done,left};
 }
 
 /* ---------- 그리기 ---------- */
@@ -700,7 +734,7 @@ function rebuild(){
   if(!ST.profile){drawAll();$("saveLine").textContent="아직 저장된 모험이 없어요.";$("startBtn").textContent="▶ 새 모험 시작";$("startBtn").setAttribute("href","#setup");return}
   M=compute();
   renderHome();renderStats();renderQuest();renderToday();renderWeek();renderBadges();renderJournal();renderCloset();renderEntries();renderFoods();renderCalendar(calInfo());
-  weightChartG();kcalChart(M.days,M.T,{kcalGoal:M.P.kcal});exChart(M.weeks.slice(-8),{});
+  weightChartG();kcalChart(M.days,M.T,{kcalGoal:M.P.kcal,ok:M.kOk});exChart(M.weeks.slice(-8),{});
   drawAll();
   if(lastLevel!==null&&M.L>lastLevel){$("lvUpText").textContent="LV."+M.L+" "+M.title+"(이)가 되었어요!";$("lvUp").classList.add("on");$("lvUpOk").focus()}
   lastLevel=M.L;
@@ -711,7 +745,7 @@ function renderHome(){
   $("hXp").textContent=fmt(into)+"/"+fmt(span);$("hXpBar").style.width=(into/span*100).toFixed(1)+"%";
   const k=days[tIso]?days[tIso].kcal:0;$("mKcal").textContent=fmt(k)+" / "+fmt(P.kcal);
   const tw=weeks.find(w=>w.current);$("mWeek").textContent=(tw?tw.hit:0)+" / "+P.quest.days+"회"+(tw&&tw.ok?" ✔":"");
-  const nb=bosses.slice(1).find(b=>cur>b.kg);$("mBoss").textContent=nb?(cur-nb.kg).toFixed(1)+"kg":"클리어!";
+  const nb=bosses.slice(1).find(b=>!M.done(b));$("mBoss").textContent=nb?(M.G.dir?M.left(nb).toFixed(1)+"kg":M.left(nb)+"주"):"클리어!";
   $("saveLine").innerHTML=`저장된 모험: <b class="num">LV.${L}</b> ${esc(P.name)} · ${esc(title)} · 총 ${fmt(xp)} XP`;
   $("startBtn").textContent="▶ 이어하기";$("startBtn").setAttribute("href","#home");
   const c=dressOverride||M.auto;$("hCostume").textContent=COSTUMES.find(x=>x[0]===c)[1]+(dressOverride?" (입어보기)":"");$("hReason").textContent=M.reason;
@@ -720,12 +754,13 @@ function renderStats(){
   const {P,cur,bmi,ws,lastWith,firstWith,prevWith}=M;
   const dlt=(a,b,goodUp,unit)=>{if(b==null)return'<span class="muted">첫 기록</span>';const d=a-b;if(Math.abs(d)<0.05)return'<span class="muted">변화 없음</span>';const g=goodUp?d>0:d<0;return`<span class="${g?"up":"down"}">${d>0?"▲":"▼"} ${Math.abs(d).toFixed(1)}${unit}</span>`};
   const prevW=ws.length>1?ws[ws.length-2].w:(ws.length?P.start:null);
-  const rows=[{ico:"HP",c:"var(--pink)",name:"체중",val:cur.toFixed(1)+"kg",d:dlt(cur,prevW,false,"kg")+" <span class='muted'>지난 기록 대비</span>",note:"목표 "+P.goal+"kg",pct:Math.max(0,Math.min(1,(P.start-cur)/Math.max(0.1,P.start-P.goal)))},
+  const wUp=M.G.dir>0||(M.G.dir===0&&cur<P.goal);
+  const rows=[{ico:"HP",c:"var(--pink)",name:"체중",val:cur.toFixed(1)+"kg",d:dlt(cur,prevW,wUp,"kg")+" <span class='muted'>지난 기록 대비</span>",note:(M.G.dir===0?"유지 "+P.goal+"±"+BAND+"kg":"목표 "+P.goal+"kg"),pct:M.G.dir===0?Math.max(0.05,1-Math.abs(cur-P.goal)/(BAND*3)):M.G.metric==="smm"?0.5:Math.max(0,Math.min(1,(cur-P.start)*M.G.dir/Math.max(0.1,Math.abs(P.goal-P.start))))},
     {ico:"BMI",c:"#b9a6ff",name:"체형 · "+bodyOf(bmi).label,val:bmi.toFixed(1),d:bodyScale(bmi),note:"키 "+P.height+"cm · 보통은 18.5~22.9",pct:Math.max(0,Math.min(1,1-(bmi-22.9)/15))}];
   const add=(k,ico,c,name,unit,goodUp,note,pctF)=>{const l=lastWith(k);
     if(!l){rows.push({ico,c:"#4a4580",name,val:"🔒",d:'<span class="muted">인바디를 기록하면 열려요</span>',note:"",pct:0});return}
     const p=prevWith(k),f=firstWith(k);rows.push({ico,c,name,val:(k==="vis"?"Lv.":"")+(+l[k]).toFixed(k==="bmr"||k==="vis"?0:1)+unit,d:dlt(l[k],p?p[k]:null,goodUp,unit)+(p?" <span class='muted'>지난 측정 대비</span>":""),note,pct:pctF(l[k],f[k])})};
-  add("smm","STR","var(--pink)","골격근량 · 힘","kg",true,"늘릴수록 강해져요",(v,f)=>Math.min(1,Math.max(0.05,(v-f+2)/4)));
+  add("smm","STR","var(--pink)","골격근량 · 힘","kg",true,M.G.metric==="smm"?"목표 "+M.mG+"kg":"늘릴수록 강해져요",(v,f)=>Math.min(1,Math.max(0.05,(v-f+2)/4)));
   add("pbf","FAT","var(--gold)","체지방률 · 방어구 무게","%",false,"내릴수록 가벼워져요",(v,f)=>Math.min(1,Math.max(0.05,(f-v+2)/10)));
   add("vis","VIS","var(--red)","내장지방 레벨 · 독","",false,"10 미만이면 독 해제",v=>Math.min(1,Math.max(0.05,(20-v)/11)));
   add("bmr","MP","var(--mint)","기초대사량 · 마나","kcal",true,"근육이 늘면 함께 올라가요",v=>Math.min(1,v/1800));
@@ -736,25 +771,28 @@ function renderStats(){
     <div class="top"><span class="delta">${s.d}</span><span class="note">${s.note}</span></div></div></div>`).join("");
 }
 function renderQuest(){
-  const {P,cur,bosses}=M;
-  $("questTitle").firstChild.textContent=P.goal+"kg 왕국으로 ";
-  let ni=bosses.findIndex((b,i)=>i>0&&cur>b.kg);if(ni<0)ni=bosses.length;
+  const {P,cur,bosses,G,mS,mG,mC,prog,kept,inBand}=M;
+  const sm=G.metric==="smm"?"골격근 ":"";
+  $("questTitle").firstChild.textContent=G.dir===0?P.goal+"kg 유지의 성으로 ":sm+mG+"kg 왕국으로 ";
+  let ni=bosses.findIndex((b,i)=>i>0&&!M.done(b));if(ni<0)ni=bosses.length;
   $("map").style.gridTemplateColumns=`repeat(${bosses.length},minmax(0,1fr))`;
-  $("map").innerHTML=bosses.map((b,i)=>{const st=i===0||cur<=b.kg?"done":i===ni?"now":"todo";
-    return`<div class="node ${st}"><canvas width="16" height="16" data-boss="${b.type}" data-state="${st}"></canvas><span class="kg num">${i===0?b.kg:b.kg+"kg"}</span><span class="nm">${st==="done"&&i>0?"처치! ":""}${b.name}</span></div>`}).join("");
+  $("map").innerHTML=bosses.map((b,i)=>{const st=i===0||M.done(b)?"done":i===ni?"now":"todo";
+    return`<div class="node ${st}"><canvas width="16" height="16" data-boss="${b.type}" data-state="${st}"></canvas><span class="kg num">${G.dir===0?(i===0?"시작":b.kg+"주"):(i===0?b.kg:b.kg+"kg")}</span><span class="nm">${st==="done"&&i>0?"처치! ":""}${b.name}</span></div>`}).join("");
   document.querySelectorAll("canvas[data-boss]").forEach(c=>drawBoss(c,c.dataset.boss,c.dataset.state));
-  const span=Math.max(0.1,P.start-P.goal),pct=Math.max(0,Math.min(1,(P.start-cur)/span));
-  $("journeyText").textContent=`${P.start}kg → ${P.goal}kg 중 ${(P.start-cur).toFixed(1)}kg 진행 (현재 ${cur}kg)`;
+  const span=Math.max(0.1,Math.abs(mG-mS)),pct=G.dir===0?Math.min(1,kept/24):Math.max(0,Math.min(1,prog/span));
+  $("journeyText").textContent=G.dir===0?`${P.goal}kg ±${BAND}kg 유지 ${kept}주째 · 지금 ${cur}kg (${inBand?"범위 안 ✔":"범위 밖"})`:`${sm}${mS}kg → ${mG}kg 중 ${prog.toFixed(1)}kg 진행 (현재 ${mC}kg)`;
   $("journeyPct").textContent=(pct*100).toFixed(0)+"%";$("journeyBar").style.width=(pct*100).toFixed(1)+"%";
-  if(ni<bosses.length){const b=bosses[ni],from=bosses[ni-1].kg,hp=Math.max(0,cur-b.kg);
-    $("bossHpText").textContent=`다음 보스 ${b.name} (${b.kg}kg) 체력`;$("bossHpNum").textContent=hp.toFixed(1)+"kg 남음";$("bossHp").style.width=Math.min(100,hp/Math.max(0.1,from-b.kg)*100).toFixed(1)+"%"}
+  if(ni<bosses.length){const b=bosses[ni],from=bosses[ni-1].kg,hp=Math.max(0,M.left(b)),u=G.dir===0?"주":"kg";
+    $("bossHpText").textContent=`다음 보스 ${b.name} (${b.kg}${u}) 체력`;$("bossHpNum").textContent=(G.dir===0?hp:hp.toFixed(1))+u+" 남음";$("bossHp").style.width=Math.min(100,hp/Math.max(0.1,Math.abs(b.kg-from))*100).toFixed(1)+"%"}
   else{$("bossHpText").textContent="모든 보스를 처치했어요!";$("bossHpNum").textContent="";$("bossHp").style.width="0"}
 }
 function renderToday(){
   const {days,tIso,T,P}=M;const td=days[tIso];$("todayTag").textContent=mdw(T);
   const kc=td?td.kcal:0,na=td?td.na:0;
-  $("kcalText").textContent=fmt(kc)+" / "+fmt(P.kcal)+"kcal · 남은 "+fmt(P.kcal-kc);
-  $("kcalBar").style.width=Math.min(100,kc/P.kcal*100).toFixed(1)+"%";$("kcalBar").style.setProperty("--c",kc>P.kcal?"var(--red)":"var(--mint)");
+  const G=M.G;
+  $("kcalText").textContent=fmt(kc)+" / "+fmt(P.kcal)+"kcal · "+(G.kcal==="max"?"남은 "+fmt(P.kcal-kc):kc<P.kcal?"목표까지 "+fmt(P.kcal-kc):G.kcal==="min"?"목표 달성!":"목표보다 +"+fmt(kc-P.kcal));
+  $("kcalBar").style.width=Math.min(100,kc/P.kcal*100).toFixed(1)+"%";
+  $("kcalBar").style.setProperty("--c",G.kcal==="max"?(kc>P.kcal?"var(--red)":"var(--mint)"):G.kcal==="min"?(kc>=P.kcal*0.98?"var(--mint)":"var(--gold)"):(M.kOk(kc)?"var(--mint)":kc>P.kcal?"var(--red)":"var(--gold)"));
   $("naText").textContent=fmt(na)+" / "+fmt(P.na)+"mg";$("naBar").style.width=Math.min(100,na/P.na*100).toFixed(1)+"%";
   $("mealList").innerHTML=td?["아침","점심","저녁","간식"].filter(m=>td.items.some(i=>i.meal===m)).map(m=>{const its=td.items.filter(i=>i.meal===m);
     return`<div class="meal-row"><b>${m}</b><span>${its.map(i=>esc(i.name)).join(", ")}</span><span class="num">${fmt(its.reduce((a,i)=>a+i.kcal,0))}</span></div>`}).join(""):'<p class="muted small" style="margin:0;grid-column:1/-1">오늘은 아직 기록이 없어요.</p>';
@@ -780,12 +818,14 @@ function renderBadges(){
   const sl=lastWith("smm"),sf=firstWith("smm");
   const B=[["🏁","모험의 시작","캐릭터 만들기",1,1],
     ["⚔️","첫 보스 처치",bosses.length>2?bosses[1].name+" ("+bosses[1].kg+"kg)":"첫 보스",bosses.length>2&&cur<=bosses[1].kg?1:0,1],
-    ["⚖️","−3kg 돌파","시작 대비 3kg 감량",lost,3],["💎","−5kg 돌파","시작 대비 5kg 감량",lost,5],["👑","−10kg 돌파","시작 대비 10kg 감량",lost,10],
-    ["🏆","목표 달성",P.goal+"kg 도달",cur<=P.goal?1:0,1],
+    ...(M.G.dir===0?[["🛡️","유지 4주","목표 ±"+BAND+"kg로 4주",M.kept,4],["🏰","유지 12주","목표 ±"+BAND+"kg로 12주",M.kept,12],["👑","유지 24주","목표 ±"+BAND+"kg로 24주",M.kept,24],["🏆","지금 범위 안",P.goal+"±"+BAND+"kg",M.inBand?1:0,1]]
+      :M.G.metric==="smm"?[["💪","골격근 +1kg","시작 대비 1kg 증가",M.prog,1],["🦾","골격근 +2kg","시작 대비 2kg 증가",M.prog,2],["👑","골격근 +3kg","시작 대비 3kg 증가",M.prog,3],["🏆","목표 달성","골격근 "+M.mG+"kg 도달",(M.mC-M.mG)>=0?1:0,1]]
+      :[[ "⚖️",(M.G.dir<0?"−":"+")+"3kg 돌파","시작 대비 3kg "+M.G.verb,lost,3],["💎",(M.G.dir<0?"−":"+")+"5kg 돌파","시작 대비 5kg "+M.G.verb,lost,5],["👑",(M.G.dir<0?"−":"+")+"10kg 돌파","시작 대비 10kg "+M.G.verb,lost,10],
+        ["🏆","목표 달성",P.goal+"kg 도달",(cur-P.goal)*M.G.dir>=0?1:0,1]]),
     ["👟","첫 운동","운동 첫 기록",ST.workouts.length?1:0,1],["🔥","꾸준한 땀",P.quest.min+"분 이상 10일",exDays.length,10],["🗓️","3주 연속 클리어","주간 퀘스트 연속 달성",bestWk,3],
     ["🏃","트레드밀 5시간","누적 300분",minsOf(/트레드밀|걷기/),300],
     ["📜","식단 기록가","식단 7일 기록",Object.keys(days).length,7],["📚","식단 장인","식단 30일 기록",Object.keys(days).length,30],
-    ["🥗","절제의 3연속","목표 칼로리 3일 연속",streak(kcalOkDays),3],["🧂","나트륨 지킴이",fmt(P.na)+"mg 이하 5일",naOkDays.length,5],
+    ["🥗",M.G.streak,"목표 칼로리 3일 연속",streak(kcalOkDays),3],["🧂","나트륨 지킴이",fmt(P.na)+"mg 이하 5일",naOkDays.length,5],
     ["💪","근육 성장","골격근량 +0.5kg",sl&&sf?Math.max(0,sl.smm-sf.smm):0,0.5],
     ["💃","폴댄서","폴댄스 첫 기록",has(/폴/)?1:0,1],["🥋","검객","검도 첫 기록",has(/검도/)?1:0,1],["🪢","줄넘기 요정","줄넘기 첫 기록",has(/줄넘기/)?1:0,1]];
   const un=B.filter(b=>b[3]>=b[4]).length;$("badgeCount").textContent=un+"/"+B.length;$("mBadge").textContent=un+"/"+B.length;
@@ -799,7 +839,7 @@ function renderJournal(){
   const ev=[];
   Object.keys(ex).forEach(d=>{const e=ex[d];const n=[...new Set(e.items.filter(i=>i.min).map(i=>i.name))].join(" + ");ev.push([d,`${esc(n||"운동")} ${e.min}분`,e.min>=M.P.quest.min?"+30":"+0"])});
   ws.forEach(r=>ev.push([r.date,`체중 ${r.w}kg`+(r.smm!=null?` · 골격근 ${r.smm}kg`:"")+(r.pbf!=null?` · 체지방 ${r.pbf}%`:""),"+20"]));
-  completedDays.forEach(d=>{const k=days[d].kcal;ev.push([d,`식단 ${fmt(k)}kcal ${k<=tol?"목표 달성":"목표 초과"}`,k<=tol?"+30":"+10"])});
+  completedDays.forEach(d=>{const k=days[d].kcal;ev.push([d,`식단 ${fmt(k)}kcal ${M.kOk(k)?"목표 달성":(M.G.kcal==="min"||k<M.P.kcal?"목표 부족":"목표 초과")}`,M.kOk(k)?"+30":"+10"])});
   ev.sort((a,b)=>b[0].localeCompare(a[0]));
   $("advLog").innerHTML=ev.length?ev.slice(0,15).map(e=>`<li><span class="muted num">${mdw(parse(e[0]))}</span><span>${e[1]}</span><span class="xp">${e[2]}</span></li>`).join(""):'<li class="muted"><span></span><span>아직 모험 기록이 없어요. 기록하기에서 시작해 보세요!</span><span></span></li>';
 }
@@ -849,11 +889,17 @@ function weightChartG(){
 /* ---------- 설정 화면 ---------- */
 function look(){return ST.profile?ST.profile.look:{hair:$("pHair").value,hairColor:$("pHairColor").value,skin:$("pSkin").value,top:$("pTop").value,glasses:$("pGlasses").checked}}
 function formLook(){return{eyes:$("pEyes").value,mouth:$("pMouth").value,face:$("pFace").value,gender:$("pGender").value,hair:$("pHair").value,hairColor:$("pHairColor").value,skin:$("pSkin").value,top:$("pTop").value,glasses:$("pGlasses").checked}}
+function modeUI(){const m=$("pMode").value,G=GOALS[m];
+  $("pModeHint").textContent=G.hint;$("smmRow").hidden=m!=="muscle";
+  $("pGoalLbl").firstChild.textContent=m==="keep"?"유지할 체중(kg)":m==="muscle"?"목표 체중(kg, 참고용)":"목표 체중(kg)";
+  $("pGoal").required=m!=="muscle";$("pSmmStart").required=$("pSmmGoal").required=m==="muscle";
+  $("pKcalLbl").firstChild.textContent=m==="bulk"?"하루 최소 칼로리":m==="diet"?"하루 목표 칼로리(이하)":"하루 목표 칼로리(±10%)"}
 function fillSetup(){
   const P=ST.profile;$("setupTitle").textContent=P?"캐릭터·목표 바꾸기":"캐릭터 만들기";$("setupBack").setAttribute("href",P?"#settings":"#title");
   $("pStartDate").value=P?P.startDate:iso(today());
   if(!P)return;
   $("pName").value=P.name;$("pGender").value=P.look.gender||"f";$("pEyes").value=P.look.eyes||"smile";$("pMouth").value=P.look.mouth||"open";$("pFace").value=P.look.face||"basic";$("pHair").value=P.look.hair;$("pHairColor").value=P.look.hairColor;$("pSkin").value=P.look.skin;$("pTop").value=P.look.top;$("pGlasses").checked=!!P.look.glasses;
+  $("pMode").value=P.mode||"diet";$("pSmmStart").value=P.smmStart||"";$("pSmmGoal").value=P.smmGoal||"";modeUI();
   $("pHeight").value=P.height;$("pStart").value=P.start;$("pGoal").value=P.goal;$("pKcal").value=P.kcal;$("pNa").value=P.na;
   $("qMin").value=P.quest.min;$("qDays").value=P.quest.days;$("qFine").value=P.quest.fine||0;
 }
@@ -886,10 +932,10 @@ function calInfoFactory(M,opt){
   // opt: {kcalGoal, minFor(iso)->minutes, mealItems(day)->[{meal,name,kcal,pend}], exItems(ex)->[{name,min}]}
   return ds=>{const d=M.days[ds],e=M.ex[ds],rest=M.inRest(parse(ds));const need=opt.minFor(ds);
     const exS=e?(e.min>=need?"hit":"part"):null;
-    let diet=null;if(d){diet=d.pending?"pend":d.kcal<=M.tol?"ok":"over"}
+    let diet=null;if(d){diet=d.pending?"pend":(M.kOk?M.kOk(d.kcal):d.kcal<=M.tol)?"ok":"over"}
     let h=`<h3 style="font-size:16px;margin:0 0 6px">${mdw(parse(ds))}${rest?' <span class="pill" style="background:var(--pink);color:#2b2850">회복</span>':""}</h3>`;
     h+=`<p class="small" style="margin:0 0 4px"><span class="cdot ex ${exS||""}"></span> 운동 ${e?`<b class="num">${e.min}분</b> · `+opt.exItems(e).map(i=>esc(i.name)+(i.min?` ${i.min}분`:"")).join(", "):'<span class="muted">기록 없음</span>'}${exS==="hit"?' <span class="up">완료</span>':exS==="part"?` <span class="muted">(${need}분 이상이면 완료)</span>`:""}</p>`;
-    h+=`<p class="small" style="margin:0"><span class="cdot dt ${diet||""}"></span> 식단 ${d?`<b class="num">${fmt(d.kcal)}kcal</b> / ${fmt(opt.kcalGoal)}`+(diet==="ok"?' <span class="up">완료</span>':diet==="over"?' <span class="down">초과</span>':' <span class="muted">계산 대기 있음</span>'):'<span class="muted">기록 없음</span>'}</p>`;
+    h+=`<p class="small" style="margin:0"><span class="cdot dt ${diet||""}"></span> 식단 ${d?`<b class="num">${fmt(d.kcal)}kcal</b> / ${fmt(opt.kcalGoal)}`+(diet==="ok"?' <span class="up">완료</span>':diet==="over"?` <span class="down">${M.kOk&&d.kcal<opt.kcalGoal?"부족":"초과"}</span>`:' <span class="muted">계산 대기 있음</span>'):'<span class="muted">기록 없음</span>'}</p>`;
     if(d){const items=opt.mealItems(d);h+='<div class="cal-meals">'+["아침","점심","저녁","간식"].filter(m=>items.some(i=>i.meal===m)).map(m=>{const its=items.filter(i=>i.meal===m);
       return`<div class="meal-row"><b>${m}</b><span>${its.map(i=>esc(i.name)).join(", ")}</span><span class="num">${fmt(its.reduce((a,i)=>a+(i.kcal||0),0))}</span></div>`}).join("")+'</div>'}
     return{ex:exS,diet,rest,html:h}}
@@ -909,6 +955,7 @@ function initForms(){
   const h=new Date().getHours();$("mMeal").value=h<10?"아침":h<15?"점심":h<21?"저녁":"간식";
   ["mName","mQty","mKcal1","mNa1"].forEach(id=>$(id).addEventListener("input",updatePreview));
   ["pHair","pHairColor","pSkin","pTop","pGlasses","pEyes","pMouth","pFace","pGender"].forEach(id=>$(id).addEventListener("input",drawAll));
+  $("pMode").addEventListener("input",modeUI);modeUI();
   $("pRandom").addEventListener("click",()=>{["pHair","pHairColor","pEyes","pMouth","pFace","pSkin","pTop"].forEach(id=>{const s=$(id);s.selectedIndex=Math.floor(Math.random()*s.options.length)});$("pGlasses").checked=Math.random()<0.25;drawAll()});
   $("pGender").addEventListener("input",()=>{if(!ST.profile){const m=$("pGender").value==="m";$("pHair").value=m?"short":"long"}drawAll()});
   document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>{
@@ -917,9 +964,12 @@ function initForms(){
   $("wName").addEventListener("input",()=>{const n=$("wName").value;$("wCat").value=/헬스|근력|덤벨|머신|컬|프레스|풀|덕션|익스텐션|로우|킥백|스쿼트|데드/.test(n)?"근력":/폴댄스|검도|요가/.test(n)?"기타":"유산소"});
   $("fSetup").addEventListener("submit",e=>{e.preventDefault();
     const n=v=>parseFloat($(v).value);
-    const P={name:$("pName").value.trim()||"용사",look:formLook(),height:n("pHeight"),start:n("pStart"),goal:n("pGoal"),kcal:n("pKcal"),na:n("pNa"),startDate:$("pStartDate").value||iso(today()),
+    const P={mode:$("pMode").value,smmStart:n("pSmmStart")||null,smmGoal:n("pSmmGoal")||null,name:$("pName").value.trim()||"용사",look:formLook(),height:n("pHeight"),start:n("pStart"),goal:n("pGoal"),kcal:n("pKcal"),na:n("pNa"),startDate:$("pStartDate").value||iso(today()),
       quest:{min:Math.max(1,n("qMin")||30),days:Math.max(1,Math.min(7,n("qDays")||2)),fine:Math.max(0,n("qFine")||0)}};
+    if(P.mode==="keep"||!isFinite(P.goal))P.goal=P.mode==="keep"?(isFinite(P.goal)?P.goal:P.start):P.goal;
+    if(P.mode==="muscle"&&!isFinite(P.goal))P.goal=P.start;
     if(![P.height,P.start,P.goal,P.kcal,P.na].every(isFinite)){toast("숫자 칸을 모두 채워 주세요");return}
+    if(P.mode==="muscle"&&!(P.smmStart>0&&P.smmGoal>0)){toast("시작·목표 골격근량을 넣어 주세요");return}
     const isNew=!ST.profile;ST.profile=P;persist();lastLevel=null;rebuild();toast(isNew?"⚔️ 모험이 시작됐어요!":"설정을 저장했어요");location.hash="#home"});
   const add=(list,obj,msg)=>{obj.id=uid();obj.created=new Date().toISOString();ST[list].push(obj);persist();rebuild();toast(msg)};
   $("fMeal").addEventListener("submit",e=>{e.preventDefault();
@@ -1369,7 +1419,7 @@ function kcalChart(days,today,S){
   [0,1000,2000].forEach(v=>{s+=`<line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#4a4580" stroke-dasharray="2 3"/><text x="${l-4}" y="${Y(v)+4}" text-anchor="end">${v/1000}k</text>`});
   list.forEach((x,i)=>{const X=l+i*bwid+2;
     if(x.k==null){s+=`<rect x="${X}" y="${Y(0)-2}" width="${bwid-4}" height="2" fill="#4a4580"/>`}
-    else{const ok=x.k<=S.kcalGoal*1.02;s+=`<rect x="${X}" y="${Y(x.k)}" width="${bwid-4}" height="${Y(0)-Y(x.k)}" fill="${ok?"#7ee8c2":"#ff6b7f"}"><title>${x.d.getMonth()+1}/${x.d.getDate()} ${Math.round(x.k)}kcal</title></rect>`}
+    else{const ok=S.ok?S.ok(x.k):x.k<=S.kcalGoal*1.02;s+=`<rect x="${X}" y="${Y(x.k)}" width="${bwid-4}" height="${Y(0)-Y(x.k)}" fill="${ok?"#7ee8c2":"#ff6b7f"}"><title>${x.d.getMonth()+1}/${x.d.getDate()} ${Math.round(x.k)}kcal</title></rect>`}
     if(i%2===1||i===n-1)s+=`<text x="${X+(bwid-4)/2}" y="${H-6}" text-anchor="middle">${x.d.getDate()}</text>`});
   s+=`<line x1="${l}" x2="${W-r}" y1="${Y(S.kcalGoal)}" y2="${Y(S.kcalGoal)}" stroke="#ffd166" stroke-width="2"/>`;
   document.getElementById("kChart").innerHTML=svgWrap(W,H,s);
