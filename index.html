@@ -641,7 +641,7 @@ function renderToday(){
   $("kcalBar").style.width=Math.min(100,kc/P.kcal*100).toFixed(1)+"%";$("kcalBar").style.setProperty("--c",kc>P.kcal?"var(--red)":"var(--mint)");
   $("naText").textContent=fmt(na)+" / "+fmt(P.na)+"mg";$("naBar").style.width=Math.min(100,na/P.na*100).toFixed(1)+"%";
   $("mealList").innerHTML=td?["아침","점심","저녁","간식"].filter(m=>td.items.some(i=>i.meal===m)).map(m=>{const its=td.items.filter(i=>i.meal===m);
-    return`<div class="meal-row"><b>${m}</b><span>${its.map(i=>esc(i.name)).join(", ")}</span><span class="num">${fmt(its.reduce((a,i)=>a+i.kcal,0))}</span></div>`}).join(""):'<p class="muted small" style="margin:0">오늘은 아직 기록이 없어요.</p>';
+    return`<div class="meal-row"><b>${m}</b><span>${its.map(i=>esc(i.name)).join(", ")}</span><span class="num">${fmt(its.reduce((a,i)=>a+i.kcal,0))}</span></div>`}).join(""):'<p class="muted small" style="margin:0;grid-column:1/-1">오늘은 아직 기록이 없어요.</p>';
 }
 function renderWeek(){
   const {weeks,ex,P,T,tIso}=M;const Q=P.quest;
@@ -651,7 +651,7 @@ function renderWeek(){
   $("weekRule").textContent=`규칙: 월요일 시작, 하루 ${Q.min}분 이상 운동한 날이 주 ${Q.days}회 이상이면 달성.`+(Q.fine?` 미달성 시 벌금 ${fmt(Q.fine)}원.`:"");
   $("weekDays").innerHTML=tw.dates.map(d=>{const e=ex[iso(d)];const cls=e&&e.min>=Q.min?"hit":e?"part":"";
     return`<div class="day ${cls} ${iso(d)===tIso?"today":""}">${DOW[d.getDay()]}<span class="m num">${e?e.min+"'":"-"}</span></div>`}).join("");
-  $("weekHistory").innerHTML=weeks.length?weeks.slice(-12).reverse().map(w=>`<div class="wk ${w.ok?"ok":w.current?"":"fail"} ${w.current?"now":""}">${md(w.start)}~<span class="r">${w.ok?"CLEAR":w.current?"진행중":"FAIL"}</span>${w.hit}회 · ${w.min}분${w.rest?'<br><span class="rest">회복 주간</span>':""}</div>`).join(""):'<p class="muted small" style="margin:0">운동을 기록하면 주간 기록이 쌓여요.</p>';
+  $("weekHistory").innerHTML=weeks.length?weeks.slice(-12).reverse().map(w=>`<div class="wk ${w.ok?"ok":w.current?"":"fail"} ${w.current?"now":""}">${md(w.start)}~<span class="r">${w.ok?"CLEAR":w.current?"진행중":"FAIL"}</span>${w.hit}회 · ${w.min}분${w.rest?'<br><span class="rest">회복 주간</span>':""}</div>`).join(""):'<p class="muted small" style="margin:0;grid-column:1/-1">운동을 기록하면 주간 기록이 쌓여요.</p>';
   const done=weeks.filter(w=>!w.current),fails=done.filter(w=>!w.ok);
   $("fineText").innerHTML=done.length?`지난 ${done.length}주 중 <span class="up">${done.filter(w=>w.ok).length}주 달성</span>`+(Q.fine?` · 누적 벌금 <b class="down">${fmt(fails.length*Q.fine)}원</b>`:""):"";
 }
@@ -715,7 +715,7 @@ function updatePreview(){
 /* ---------- 차트: 체중 (범위 자동) ---------- */
 function weightChartG(){
   const pts=M.series,P=M.P,el=$("wChart");
-  if(pts.length<2){el.innerHTML='<p class="muted small" style="margin:0">체중을 한 번 더 기록하면 그래프가 그려져요.</p>';return}
+  if(pts.length<2){el.innerHTML='<p class="muted small" style="margin:0;grid-column:1/-1">체중을 한 번 더 기록하면 그래프가 그려져요.</p>';return}
   const W=320,H=180,l=34,r=12,t=12,b=24;
   const xs=pts.map(p=>+p.d),x0=Math.min(...xs),x1=Math.max(...xs)||x0+1;
   const vals=pts.map(p=>p.w).concat([P.goal]);let y0=Math.floor(Math.min(...vals)/5)*5-2,y1=Math.ceil(Math.max(...vals)/5)*5+2;
