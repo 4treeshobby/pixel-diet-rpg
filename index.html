@@ -205,6 +205,13 @@ input[type="date"]{-webkit-appearance:none;appearance:none;display:block;width:1
 input[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0}
 .qtop input[type="date"]{width:auto;min-height:0;display:inline-block}
 
+.ent-tools{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px}
+.entries li{grid-template-columns:auto 1fr auto auto}
+.entries li .pick{width:18px;height:18px;min-height:0;margin:0;accent-color:var(--gold)}
+.entries li.sel{background:color-mix(in srgb,var(--gold) 14%,transparent)}
+.btn.sm{font-size:14px;padding:6px 10px;box-shadow:3px 3px 0 #0f0e1f}
+.toast .undo{margin-left:10px;background:#fff;color:#2b2850;border:2px solid #0f0e1f;border-radius:2px;padding:2px 8px;font:inherit;font-size:14px;cursor:pointer}
+
 .quick textarea{background:var(--well);color:var(--ink);border:2px solid var(--line);border-radius:2px;padding:10px;width:100%;font:inherit;font-size:15px;min-height:96px;resize:vertical}
 .quick textarea:focus{border-color:var(--gold);outline:none}
 .qbtns{display:flex;gap:8px;flex-wrap:wrap}
@@ -414,6 +421,7 @@ document.addEventListener("DOMContentLoaded",function(){setTheme(document.docume
   </div>
   <div class="box">
     <h2>최근 기록 <span class="tag" id="entCount">0</span></h2>
+    <div class="ent-tools"><label class="check small"><input type="checkbox" id="entAll"> 전체 선택</label><button class="btn alt sm" type="button" id="entDel" disabled>🗑 선택 삭제</button></div>
     <ul class="entries" id="entries"></ul>
   </div>
 </section>
@@ -763,7 +771,8 @@ function renderEntries(){
     .sort((a,b)=>(b.created||"").localeCompare(a.created||"")).slice(0,30);
   $("entCount").textContent=ST.meals.length+ST.workouts.length+ST.weights.length+ST.conds.length;
   const lbl=e=>e.t==="meal"?`🍙 ${mdw(parse(e.date))} ${e.meal} · ${esc(e.name)} ${e.qty}${esc(e.unit)}`:e.t==="workout"?`🏃 ${mdw(parse(e.date))} ${esc(e.name)}${e.min?" "+e.min+"분":""}${e.sets?` ${e.sets}세트`:""}`:e.t==="weight"?`⚖️ ${mdw(parse(e.date))} ${e.w}kg`:`🌙 ${md(parse(e.start))}~${md(parse(e.end))} ${esc(e.kind)}`;
-  $("entries").innerHTML=all.length?all.map(e=>`<li><span>${lbl(e)}</span>${e.t==="meal"?`<span class="num">${fmt(e.kcal)}kcal</span>`:"<span></span>"}<button type="button" class="del" data-t="${e.t}" data-id="${esc(e.id)}">삭제</button></li>`).join(""):'<li class="muted"><span>아직 없어요. 위에서 기록해 보세요!</span></li>';
+  $("entries").innerHTML=all.length?all.map(e=>`<li><input type="checkbox" class="pick" data-t="${e.t}" data-id="${esc(e.id)}" aria-label="선택"><span>${lbl(e)}</span>${e.t==="meal"?`<span class="num">${fmt(e.kcal)}kcal</span>`:"<span></span>"}<button type="button" class="del" data-t="${e.t}" data-id="${esc(e.id)}">삭제</button></li>`).join(""):'<li class="muted" style="grid-template-columns:1fr"><span>아직 없어요. 위에서 기록해 보세요!</span></li>';
+  entPickState();
 }
 let foodMap=new Map();
 function renderFoods(){
@@ -807,6 +816,12 @@ function fillSetup(){
   $("pHeight").value=P.height;$("pStart").value=P.start;$("pGoal").value=P.goal;$("pKcal").value=P.kcal;$("pNa").value=P.na;
   $("qMin").value=P.quest.min;$("qDays").value=P.quest.days;$("qFine").value=P.quest.fine||0;
 }
+function toastUndo(t,fn){const el=$("toast");el.innerHTML="";el.append(t);const b=document.createElement("button");b.type="button";b.className="undo";b.textContent="되돌리기";
+  b.onclick=()=>{clearTimeout(toast._t);el.classList.remove("on");fn()};el.append(b);el.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("on"),6000)}
+function entPickState(){const all=[...document.querySelectorAll("#entries .pick")],on=all.filter(c=>c.checked);
+  $("entDel").disabled=!on.length;$("entDel").textContent=on.length?`🗑 선택 삭제 (${on.length})`:"🗑 선택 삭제";
+  $("entAll").checked=all.length>0&&on.length===all.length;$("entAll").indeterminate=on.length>0&&on.length<all.length;
+  all.forEach(c=>c.closest("li").classList.toggle("sel",c.checked))}
 function toast(t){const el=$("toast");el.textContent=t;el.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("on"),2600)}
 
 function initForms(){
@@ -843,9 +858,14 @@ function initForms(){
     add("weights",o,"⚖️ 체중 기록! 보스에게 공격!");["iW","iSmm","iPbf","iBmr","iVis"].forEach(id=>$(id).value="")});
   $("fCond").addEventListener("submit",e=>{e.preventDefault();const o={start:$("cStart").value,end:$("cEnd").value,kind:$("cKind").value};
     if(o.end<o.start){toast("종료일이 시작일보다 빨라요");return}add("conds",o,"🌙 회복 주간으로 기록했어요")});
-  $("entries").addEventListener("click",e=>{const b=e.target.closest(".del");if(!b)return;
-    if(!b.classList.contains("arm")){b.classList.add("arm");b.textContent="정말 삭제";setTimeout(()=>{b.classList.remove("arm");b.textContent="삭제"},3000);return}
-    const list={meal:"meals",workout:"workouts",weight:"weights",cond:"conds"}[b.dataset.t];ST[list]=ST[list].filter(x=>x.id!==b.dataset.id);persist();rebuild();toast("삭제했어요")});
+  const LISTS={meal:"meals",workout:"workouts",weight:"weights",cond:"conds"};
+  function removeEntries(picks){const gone=[];picks.forEach(({t,id})=>{const L=LISTS[t];const x=ST[L].find(v=>v.id===id);if(x){gone.push([L,x]);ST[L]=ST[L].filter(v=>v.id!==id)}});
+    persist();rebuild();if(!gone.length)return;
+    toastUndo(`🗑 ${gone.length}개 삭제했어요`,()=>{gone.forEach(([L,x])=>ST[L].push(x));persist();rebuild();toast("되돌렸어요")})}
+  $("entries").addEventListener("click",e=>{const b=e.target.closest(".del");if(!b)return;removeEntries([{t:b.dataset.t,id:b.dataset.id}])});
+  $("entries").addEventListener("change",e=>{if(e.target.classList.contains("pick"))entPickState()});
+  $("entAll").addEventListener("change",e=>{document.querySelectorAll("#entries .pick").forEach(c=>c.checked=e.target.checked);entPickState()});
+  $("entDel").addEventListener("click",()=>removeEntries([...document.querySelectorAll("#entries .pick:checked")].map(c=>({t:c.dataset.t,id:c.dataset.id}))));
   $("closet").addEventListener("click",e=>{const b=e.target.closest("button[data-k]");if(!b||b.disabled)return;dressOverride=b.dataset.k===M.auto?null:b.dataset.k;renderCloset();renderHome();drawAll();toast("마을에서 입어볼 수 있어요")});
   $("autoDress").addEventListener("click",()=>{dressOverride=null;renderCloset();renderHome();drawAll()});
   $("lvUpOk").addEventListener("click",()=>$("lvUp").classList.remove("on"));
