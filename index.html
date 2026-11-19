@@ -272,6 +272,29 @@ input[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0}
 
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tiles>span{display:grid;gap:4px;background:var(--panel-2);border-radius:2px;padding:10px 12px}.tiles small{font-size:12px;color:var(--ink-dim)}.tiles b{font-size:24px}
 
+.kv.kin{font-size:13px;color:var(--ink-dim);padding-left:10px}
+
+/* 접고 펴기 */
+.acc .box>h2.acc-h{cursor:pointer;margin:0;user-select:none;-webkit-tap-highlight-color:transparent;min-height:28px}
+.acc .box>h2.acc-h::after{content:"▼";margin-left:auto;font-size:12px;color:var(--ink-dim);flex:none}
+.acc .box.open>h2.acc-h::after{content:"▲"}
+.acc .box.open>h2.acc-h{margin-bottom:12px}
+.acc .box:not(.open)>.acc-b{display:none}
+.acc .box:not(.open){padding-top:12px;padding-bottom:12px}
+.acc-s{font-size:13px;color:var(--ink-dim);font-weight:400;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc .box.open .acc-s{display:none}
+@media (min-width:900px){
+  .screen.acc.on{max-width:1280px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start}
+  .screen.acc>.topbar,.screen.acc>footer,.screen.acc>p{grid-column:1/-1}
+  .acc .box>.acc-b{display:block!important}.acc .box>h2.acc-h{cursor:default;margin-bottom:12px}.acc .box>h2.acc-h::after{content:none}.acc .box .acc-s{display:none}
+  .acc .box:not(.open){padding:16px}
+}
+
+.screen.on>*{min-width:0}
+.acc .box>h2.acc-h{overflow:hidden}
+.acc-t{flex:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.acc-s{flex:1 1 auto}
+
 .quick textarea{background:var(--well);color:var(--ink);border:2px solid var(--line);border-radius:2px;padding:10px;width:100%;font:inherit;font-size:15px;min-height:96px;resize:vertical}
 .quick textarea:focus{border-color:var(--gold);outline:none}
 .qbtns{display:flex;gap:8px;flex-wrap:wrap}
@@ -521,15 +544,15 @@ document.addEventListener("DOMContentLoaded",function(){setTheme(document.docume
 <!-- ===== 오늘의 연료 ===== -->
 <section class="screen" id="s-today" aria-label="오늘의 연료">
   <div class="topbar"><a class="back" href="#home">◀ 마을</a><h1>오늘의 연료</h1><span class="tag" id="todayTag"></span></div>
-  <div class="box" id="fairyBox"></div>
-  <div class="box diary">
+  <div class="box" data-acc-title="🧚 요정 루미의 평가"><div id="fairyBox"></div></div>
+  <div class="box diary" data-acc-title="📊 날짜별 칼로리">
     <div class="dnav"><button class="back" type="button" id="dPrev" aria-label="전날">◀</button><b id="dLabel"></b><button class="back" type="button" id="dNext" aria-label="다음날">▶</button><button class="btn alt sm" type="button" id="dToday" hidden>오늘</button></div>
     <div class="dsum" id="dSum"></div>
     <div class="dgrid"><div id="dKcal"></div><div class="waffle" id="dWaffle" aria-hidden="true"></div></div>
     <div class="dgrid" style="border-bottom:0;padding-bottom:0"><div id="dNut"></div><div class="donut" id="dDonut"></div></div>
   </div>
   <div class="box">
-    <h2>식단 · 운동</h2>
+    <h2>🍙 식단 · 운동</h2>
     <h3 class="dh" style="margin-top:0">식단</h3><div class="meal" id="mealList"></div>
     <h3 class="dh">운동</h3><div class="meal" id="dEx"></div>
     <a class="btn" href="#record" style="text-decoration:none;text-align:center;margin-top:14px;display:block">+ 기록하기</a>
@@ -608,14 +631,14 @@ document.addEventListener("DOMContentLoaded",function(){setTheme(document.docume
 <!-- ===== 달력 ===== -->
 <section class="screen" id="s-calendar" aria-label="달력">
   <div class="topbar"><a class="back" href="#home">◀ 마을</a><h1>달력</h1></div>
-  <div class="box">
+  <div class="box" data-acc-title="📅 달력">
     <div class="cal-head"><button class="back" type="button" id="calPrev" aria-label="이전 달">◀</button><h2 id="calTitle" style="margin:0"></h2><button class="back" type="button" id="calNext" aria-label="다음 달">▶</button></div>
     <div class="cal-dow" aria-hidden="true"><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span><span>일</span></div>
     <div class="cal-grid" id="calGrid"></div>
     <p class="small muted cal-legend" style="margin:10px 0 0"><span class="cdot ex hit"></span> 운동 완료 · <span class="cdot ex part"></span> 조금 함 · <span class="cdot dt ok"></span> 식단 목표 달성 · <span class="cdot dt over"></span> 목표 벗어남 · <span class="cdot rest"></span> 회복 기간</p>
   </div>
   <div class="box"><h2>이번 달</h2><p style="margin:0" id="calSum"></p></div>
-  <div class="box" id="calDetail"></div>
+  <div class="box" data-acc-title="📌 날짜 상세"><div id="calDetail"></div></div>
 </section>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -647,7 +670,7 @@ const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: red
 const today=()=>{const t=new Date();t.setHours(0,0,0,0);return t};
 
 /* 기본 음식 목록: [이름, 단위, 단위당 kcal, 단위당 나트륨mg] — 일반 식품·제품 표기값과 추정치 */
-const FOODS=[["닭가슴살 (생)","g",1.09,0.6,null,0,0.23,0.012],["닭가슴살 (삶은)","g",1.65,0.74,null,0,0.31,0.036],["현미밥","g",1.5,0.02,null,0.32,0.03,0.009],["현미밥 공기","공기",315.0,4.0,210,68,6,2],["흰쌀밥","g",1.45,0.02,null,0.32,0.027,0.003],["흰쌀밥 공기","공기",300.0,4.0,210,68,5.5,0.6],["카레","인분",200.0,900.0,200,22,5,10],["김치볶음밥","g",1.7,4.0,null,0.25,0.04,0.06],["브로콜리","g",0.34,0.3,null,0.066,0.028,0.004],["버섯","g",0.3,0.05,null,0.05,0.03,0.003],["반숙란","개",75.0,70.0,50,0.6,6.3,5.3],["삶은달걀","개",75.0,70.0,50,0.6,6.3,5.3],["두부","모",250.0,30.0,300,6,27,14],["연어","g",2.1,0.5,null,0,0.2,0.13],["전어회","인분",225.0,150.0,150,0,30,11],["열라면","봉",510.0,1730.0,120,79,10,17],["신라면","봉",500.0,1790.0,120,79,10,16],["신라면 로제","봉",565.0,1590.0,134,76,11,24],["신라면 로제 큰사발","개",490.0,1500.0,108,66,9,21],["썬칩","조각",10.0,9.0,2,1.3,0.14,0.5],["오뎅꼬치","꼬치",96.0,350.0,70,11,7,2.5],["곰곰 촉촉 반숙란","알",76.0,120.0,50,0.6,6.3,5.3],["요거밀 프로틴 귀리플레인","컵",105.0,40.0,85,12,8,2.8],["곰곰 퀵오트밀","봉",195.0,3.0,50,33,6.5,4],["잡곡밥 공기","공기",300.0,5.0,210,65,6.5,1.5],["부대찌개 (햄·소시지 위주)","인분",650.0,2000.0,450,45,30,38],["닭안심살","g",1.1,0.6,null,0,0.23,0.015],["비비드 저칼로리 쌈장","티스푼",5.0,150.0,6,0.8,0.3,0.1],["참기름","g",9.0,0.0,null,0,0,1],["다진마늘","티스푼",7.0,1.0,5,1.6,0.3,0],["양파링","조각",10.0,11.0,2,1.2,0.1,0.5],["이마트24 초코렛타","조각",25.0,10.0,22,3,0.3,1.3],["크라운 치즈샌드","봉",150.0,100.0,30,19,2,7.5],["파파존스 존스페이보릿 라지","조각",304.0,650.0,99,31,13,14],["굽네 크리스피 닭가슴살 고추바사삭","개",160.0,450.0,110,6,22,5],["나가사끼짬뽕 큰컵","개",445.0,1620.0,105,63,9,17],["풀무원 그릭 허니 요거트","개",95.0,50.0,90,11,6,3],["곰곰 만능두부","g",1.0,0.05,null,0.02,0.09,0.055],["룩트 고추장버터","티스푼",33.0,60.0,5,0.8,0.1,3.3],["비비고 저당볶음고추장","티스푼",10.0,130.0,6,1.5,0.4,0.3],["곰곰 맛간장","티스푼",4.0,280.0,5,0.7,0.3,0],["참깨","티스푼",18.0,0.0,3,0.6,0.6,1.5],["한성 비엔나소시지","개",25.0,85.0,10,0.6,1.2,2],["시루떡","조각",33.0,25.0,15,7.3,0.7,0.1],["카레 (밥숟가락)","숟갈",20.0,90.0,15,2,0.4,1.1],["보코치니 모짜렐라","알",35.0,25.0,15,0.3,2.7,2.6],["GS25 전주비빔 삼각김밥","개",193.0,500.0,107,35,4,4],["도니도니 김치돈까스","인분",850.0,1500.0,180,80,30,46],["도니도니 치즈돈까스","조각",150.0,220.0,40,10,6,9.5],["카페인중독 떡와플+생크림","개",450.0,250.0,150,55,6,23],["슈바인학센","개",1500.0,2500.0,800,5,110,115],["치킨프리카세","인분",600.0,1100.0,300,20,35,42],["초코케이크 1호","판",1800.0,800.0,700,220,25,95],["레드락 생맥주","잔",200.0,15.0,500,18,2,0],["엽떡 떡","개",45.0,120.0,20,9,0.8,0.5],["엽떡 양배추","조각",8.0,40.0,10,1.5,0.2,0.1],["엽떡 오뎅","조각",30.0,150.0,15,3.5,1.5,1],["엽떡 비엔나","조각",15.0,60.0,10,0.5,0.6,1.2],["교촌 허니콤보 날개","조각",112.0,190.0,40,4.5,7.5,7],["교촌 허니콤보 다리","조각",190.0,330.0,70,7.5,13,12],["미닛메이드 모과&생강","병",150,20,280,37,0,0],["맥스봉 오리지널","개",70,300,50,7,5,2.5],["곰곰 블루베리","g",0.56,0.018,null,0.12,0.006,0.006]];
+const FOODS=[["닭가슴살 (생)","g",1.09,0.6,null,0,0.23,0.012,0],["닭가슴살 (삶은)","g",1.65,0.74,null,0,0.31,0.036,0],["현미밥","g",1.5,0.02,null,0.32,0.03,0.009,0.003],["현미밥 공기","공기",315.0,4.0,210,68,6,2,0.6],["흰쌀밥","g",1.45,0.02,null,0.32,0.027,0.003,0.001],["흰쌀밥 공기","공기",300.0,4.0,210,68,5.5,0.6,0.2],["카레","인분",200.0,900.0,200,22,5,10,6],["김치볶음밥","g",1.7,4.0,null,0.25,0.04,0.06,0.02],["브로콜리","g",0.34,0.3,null,0.066,0.028,0.004,0.017],["버섯","g",0.3,0.05,null,0.05,0.03,0.003,0.02],["반숙란","개",75.0,70.0,50,0.6,6.3,5.3,0.4],["삶은달걀","개",75.0,70.0,50,0.6,6.3,5.3,0.4],["두부","모",250.0,30.0,300,6,27,14,2],["연어","g",2.1,0.5,null,0,0.2,0.13,0],["전어회","인분",225.0,150.0,150,0,30,11,0],["열라면","봉",510.0,1730.0,120,79,10,17,4],["신라면","봉",500.0,1790.0,120,79,10,16,4],["신라면 로제","봉",565.0,1590.0,134,76,11,24,7],["신라면 로제 큰사발","개",490.0,1500.0,108,66,9,21,6],["썬칩","조각",10.0,9.0,2,1.3,0.14,0.5,0.2],["오뎅꼬치","꼬치",96.0,350.0,70,11,7,2.5,3],["곰곰 촉촉 반숙란","알",76.0,120.0,50,0.6,6.3,5.3,0.4],["요거밀 프로틴 귀리플레인","컵",105.0,40.0,85,12,8,2.8,4],["곰곰 퀵오트밀","봉",195.0,3.0,50,33,6.5,4,0.5],["잡곡밥 공기","공기",300.0,5.0,210,65,6.5,1.5,0.5],["부대찌개 (햄·소시지 위주)","인분",650.0,2000.0,450,45,30,38,8],["닭안심살","g",1.1,0.6,null,0,0.23,0.015,0],["비비드 저칼로리 쌈장","티스푼",5.0,150.0,6,0.8,0.3,0.1,0.3],["참기름","g",9.0,0.0,null,0,0,1,0],["다진마늘","티스푼",7.0,1.0,5,1.6,0.3,0,0.05],["양파링","조각",10.0,11.0,2,1.2,0.1,0.5,0.15],["이마트24 초코렛타","조각",25.0,10.0,22,3,0.3,1.3,1.8],["크라운 치즈샌드","봉",150.0,100.0,30,19,2,7.5,7],["파파존스 존스페이보릿 라지","조각",304.0,650.0,99,31,13,14,4],["굽네 크리스피 닭가슴살 고추바사삭","개",160.0,450.0,110,6,22,5,2],["나가사끼짬뽕 큰컵","개",445.0,1620.0,105,63,9,17,4],["풀무원 그릭 허니 요거트","개",95.0,50.0,90,11,6,3,9],["곰곰 만능두부","g",1.0,0.05,null,0.02,0.09,0.055,0.005],["룩트 고추장버터","티스푼",33.0,60.0,5,0.8,0.1,3.3,0.5],["비비고 저당볶음고추장","티스푼",10.0,130.0,6,1.5,0.4,0.3,0.2],["곰곰 맛간장","티스푼",4.0,280.0,5,0.7,0.3,0,0.4],["참깨","티스푼",18.0,0.0,3,0.6,0.6,1.5,0],["한성 비엔나소시지","개",25.0,85.0,10,0.6,1.2,2,0.3],["시루떡","조각",33.0,25.0,15,7.3,0.7,0.1,2],["카레 (밥숟가락)","숟갈",20.0,90.0,15,2,0.4,1.1,0.6],["보코치니 모짜렐라","알",35.0,25.0,15,0.3,2.7,2.6,0.1],["GS25 전주비빔 삼각김밥","개",193.0,500.0,107,35,4,4,4],["도니도니 김치돈까스","인분",850.0,1500.0,180,80,30,46,12],["도니도니 치즈돈까스","조각",150.0,220.0,40,10,6,9.5,1],["카페인중독 떡와플+생크림","개",450.0,250.0,150,55,6,23,20],["슈바인학센","개",1500.0,2500.0,800,5,110,115,3],["치킨프리카세","인분",600.0,1100.0,300,20,35,42,6],["초코케이크 1호","판",1800.0,800.0,700,220,25,95,160],["레드락 생맥주","잔",200.0,15.0,500,18,2,0,0],["엽떡 떡","개",45.0,120.0,20,9,0.8,0.5,2],["엽떡 양배추","조각",8.0,40.0,10,1.5,0.2,0.1,1],["엽떡 오뎅","조각",30.0,150.0,15,3.5,1.5,1,1],["엽떡 비엔나","조각",15.0,60.0,10,0.5,0.6,1.2,0.2],["교촌 허니콤보 날개","조각",112.0,190.0,40,4.5,7.5,7,2.5],["교촌 허니콤보 다리","조각",190.0,330.0,70,7.5,13,12,4],["미닛메이드 모과&생강","병",150,20,280,37,0,0,35],["맥스봉 오리지널","개",70,300,50,7,5,2.5,2],["곰곰 블루베리","g",0.56,0.018,null,0.12,0.006,0.006,0.09]];
 
 /* ---------- 저장 (이 브라우저의 localStorage) ---------- */
 const KEY="dietrpg.v1";
@@ -893,7 +916,7 @@ function renderEntries(){
 }
 let foodMap=new Map();
 function renderFoods(){
-  foodMap=new Map();FOODS.forEach(f=>foodMap.set(f[0],{unit:f[1],kcal:f[2],na:f[3],g:f[4]||null,c:f[5],p:f[6],f:f[7]}));ST.foods.forEach(f=>foodMap.set(f.name,{unit:f.unit,kcal:f.kcal,na:f.na}));
+  foodMap=new Map();FOODS.forEach(f=>foodMap.set(f[0],{unit:f[1],kcal:f[2],na:f[3],g:f[4]||null,c:f[5],p:f[6],f:f[7],s:f[8]}));ST.foods.forEach(f=>foodMap.set(f.name,{unit:f.unit,kcal:f.kcal,na:f.na}));
   $("foodList").innerHTML=[...foodMap.keys()].sort((a,b)=>a.localeCompare(b,"ko")).map(n=>`<option value="${esc(n)}"></option>`).join("");
   updatePreview();
 }
@@ -955,6 +978,7 @@ function renderCalendar(info){
     cells+=`<button type="button" class="cd ${ds===tIso?"today":""} ${ds===CAL.sel?"sel":""} ${r.rest?"rest":""} ${future?"future":""}" data-d="${ds}" aria-label="${CAL.m+1}월 ${d}일${r.ex==="hit"?", 운동 완료":""}${r.diet==="ok"?", 식단 완료":""}">
       <span class="n num">${d}</span><span class="dots">${r.ex?`<i class="ex ${r.ex}"></i>`:""}${r.diet?`<i class="dt ${r.diet}"></i>`:""}</span></button>`}
   $("calGrid").innerHTML=cells;
+  accSum($("calSum"),`운동 ${exN}일 · 식단 ${dietN}일`);
   $("calSum").innerHTML=`<span class="tiles"><span><small>🏃 운동 완료</small><b class="num up">${exN}일</b></span><span><small>🍙 식단 완료</small><b class="num" style="color:var(--gold)">${dietN}일</b></span></span>`;
   const sd=CAL.sel&&CAL.sel.slice(0,7)===`${CAL.y}-${String(CAL.m+1).padStart(2,"0")}`?CAL.sel:null;
   $("calDetail").innerHTML=sd?info(sd).html:'<p class="small muted" style="margin:0">날짜를 누르면 그날 기록을 보여줘요.</p>';
@@ -962,7 +986,7 @@ function renderCalendar(info){
 function initCalendar(info){
   $("calPrev").addEventListener("click",()=>{CAL.m--;if(CAL.m<0){CAL.m=11;CAL.y--}renderCalendar(info())});
   $("calNext").addEventListener("click",()=>{CAL.m++;if(CAL.m>11){CAL.m=0;CAL.y++}renderCalendar(info())});
-  $("calGrid").addEventListener("click",e=>{const b=e.target.closest(".cd[data-d]");if(!b)return;CAL.sel=CAL.sel===b.dataset.d?null:b.dataset.d;renderCalendar(info())});
+  $("calGrid").addEventListener("click",e=>{const b=e.target.closest(".cd[data-d]");if(!b)return;CAL.sel=CAL.sel===b.dataset.d?null:b.dataset.d;renderCalendar(info());const bx=$("calDetail").closest(".box");if(CAL.sel&&bx&&bx.querySelector(".acc-h")){bx.classList.add("open");bx.querySelector(".acc-h").setAttribute("aria-expanded","true");setTimeout(()=>bx.scrollIntoView({block:"nearest",behavior:"smooth"}),30)}});
 }
 function calInfoFactory(M,opt){
   // opt: {kcalGoal, minFor(iso)->minutes, mealItems(day)->[{meal,name,kcal,pend}], exItems(ex)->[{name,min}]}
@@ -1041,8 +1065,9 @@ function fairyAdvice(X){
 function renderFairy(X){const r=fairyAdvice(X);const ico={red:"🔴",yel:"🟡",info:"🔵",good:"🟢"};
   const top=r.msgs[0];const say={S:"완벽해요!",A:"잘하고 있어요!",B:"조금만 신경 써요!",C:"요정이 걱정하고 있어요…"}[r.grade];
   if($("fairyLine"))$("fairyLine").innerHTML=`<b class="fairy-grade g${r.grade}">${r.grade}</b><span>${top?esc(top.t):say}</span>`;
-  if($("fairyBox"))$("fairyBox").innerHTML=`<div class="fairy-head"><canvas width="16" height="16" class="fairy-cv" aria-hidden="true"></canvas><div><b>요정 루미의 평가</b><br><span class="small muted">${say}</span></div><b class="fairy-grade big g${r.grade}">${r.grade}</b></div>
+  if($("fairyBox"))$("fairyBox").innerHTML=`<div class="fairy-head"><canvas width="16" height="16" class="fairy-cv" aria-hidden="true"></canvas><div><b>${say}</b><br><span class="small muted">최근 7일 식단·운동 기준</span></div><b class="fairy-grade big g${r.grade}">${r.grade}</b></div>
     <ul class="fairy-list">${r.msgs.map(m=>`<li class="${m.lv}"><span>${ico[m.lv]}</span><span>${esc(m.t)}</span></li>`).join("")}</ul>`;
+  accSum($("fairyBox"),`${r.grade}등급 · 조언 ${r.msgs.filter(m=>m.lv!=="good").length}개`);
   document.querySelectorAll(".fairy-cv").forEach(c=>drawFairy(c,0))}
 
 function fairyX(){const P=M.P;const tw=M.weeks.find(w=>w.current);
@@ -1075,7 +1100,7 @@ function metOf(name,setting,cat){
   return{met:cat==="근력"?5.0:cat==="유산소"?6.0:4.0,label:"기타 운동"}}
 function burnOf(item,w){if(!item.min||!w)return 0;return Math.round(metOf(item.name,item.setting,item.cat).met*w*item.min/60)}
 /* ===== 영양 (탄단지) ===== */
-function macroOf(name,kcal){const f=foodMap.get(name);if(!f||f.c==null||!f.kcal)return null;const r=kcal/f.kcal;return{c:f.c*r,p:f.p*r,f:f.f*r}}
+function macroOf(name,kcal){const f=foodMap.get(name);if(!f||f.c==null||!f.kcal)return null;const r=kcal/f.kcal;return{c:f.c*r,p:f.p*r,f:f.f*r,s:(f.s||0)*r}}
 /* ===== 식단 상세 (FatSecret 스타일) ===== */
 const DIARY={d:null};
 function renderDiary(o){
@@ -1083,8 +1108,8 @@ function renderDiary(o){
   const tIso=iso(o.T);if(!DIARY.d||DIARY.d>tIso)DIARY.d=tIso;const ds=DIARY.d;
   $("dLabel").textContent=(ds===tIso?"오늘 · ":"")+mdw(parse(ds));$("dNext").disabled=ds>=tIso;$("dToday").hidden=ds===tIso;
   const day=o.dayOf(ds),items=day?day.items:[];
-  let kc=0,na=0,c=0,p=0,fa=0,unk=0;
-  items.forEach(i=>{kc+=i.kcal||0;na+=i.na||0;const m=macroOf(i.name,i.kcal||0);if(m){c+=m.c;p+=m.p;fa+=m.f}else if(i.kcal)unk++});
+  let kc=0,na=0,c=0,p=0,fa=0,su=0,unk=0;
+  items.forEach(i=>{kc+=i.kcal||0;na+=i.na||0;const m=macroOf(i.name,i.kcal||0);if(m){c+=m.c;p+=m.p;fa+=m.f;su+=m.s}else if(i.kcal)unk++});
   const exs=(o.exOf(ds)||[]).filter(e=>e.min).map(e=>Object.assign({},e,{burn:burnOf(e,o.w),info:metOf(e.name,e.setting,e.cat)}));
   const burn=exs.reduce((a,e)=>a+e.burn,0);
   const pct=o.goal?kc/o.goal:0,left=o.goal-kc;
@@ -1101,13 +1126,15 @@ function renderDiary(o){
   // 영양 + 도넛
   const kcC=c*4,kcP=p*4,kcF=fa*9,tot=kcC+kcP+kcF;
   const pc=tot?[kcC/tot,kcF/tot,kcP/tot]:[0,0,0];
-  $("dNut").innerHTML=`<div class="kv"><span>탄수화물</span><b class="num">${f1(c)}g</b></div><div class="kv"><span>단백질</span><b class="num">${f1(p)}g</b></div><div class="kv"><span>지방</span><b class="num">${f1(fa)}g</b></div>
+  $("dNut").innerHTML=`<div class="kv"><span>탄수화물</span><b class="num">${f1(c)}g</b></div><div class="kv kin"><span>└ 당류</span><b class="num">${f1(su)}g</b></div><div class="kv"><span>단백질</span><b class="num">${f1(p)}g</b></div><div class="kv"><span>지방</span><b class="num">${f1(fa)}g</b></div>
     <div class="kv"><span>나트륨</span><b class="num ${na>o.naGoal?"down":""}">${fmt(na)}<small>/${fmt(o.naGoal)}mg</small></b></div>
     ${unk?`<p class="small muted" style="margin:4px 0 0">영양성분 모르는 음식 ${unk}개는 탄단지에서 빠졌어요</p>`:""}`;
   const R=15.9155,C=["#7ec8e3","#f6c445","#f08a80"];let acc=0;
   const segs=tot?pc.map((v,i)=>{const s=`<circle r="${R}" cx="21" cy="21" fill="none" stroke="${C[i]}" stroke-width="9" stroke-dasharray="${(v*100).toFixed(2)} ${(100-v*100).toFixed(2)}" stroke-dashoffset="${(25-acc).toFixed(2)}"/>`;acc+=v*100;return s}).join(""):`<circle r="${R}" cx="21" cy="21" fill="none" stroke="var(--line)" stroke-width="9"/>`;
   $("dDonut").innerHTML=`<svg viewBox="0 0 42 42" role="img" aria-label="탄수 ${Math.round(pc[0]*100)}%, 지방 ${Math.round(pc[1]*100)}%, 단백질 ${Math.round(pc[2]*100)}%">${segs}</svg>
     <ul>${["탄수","지방","단백질"].map((n,i)=>`<li><span>${n}</span><b class="num">${Math.round(pc[i]*100)}%</b><i style="background:${C[i]}"></i></li>`).join("")}</ul>`;
+  accSum($("dSum"),`${fmt(kc)} / ${fmt(o.goal)}kcal · ${Math.round(pct*100)}%`);
+  accSum($("mealList"),`${["아침","점심","저녁","간식"].filter(m=>items.some(i=>i.meal===m)).join("·")||"식단 없음"} · 운동 ${exs.length?fmt(burn)+"kcal":"없음"}`);
   // 끼니
   $("mealList").innerHTML=items.length?["아침","점심","저녁","간식"].filter(m=>items.some(i=>i.meal===m)).map(m=>{const its=items.filter(i=>i.meal===m);
       return`<div class="meal-row"><b>${m}</b><span>${its.map(i=>esc(i.name)+(i.pend?' <span class="pill wait">계산 대기</span>':"")).join(", ")}</span><span class="num">${fmt(its.reduce((a,i)=>a+(i.kcal||0),0))}</span></div>`}).join("")
@@ -1127,6 +1154,33 @@ function renderAdv(rows){
   // rows: [{d, ex:"폴댄스 30분"|null, exOk, kcal|null, kOk, w|null, xp}]
   $("advLog").innerHTML=rows.slice(0,12).map(r=>`<li><span class="ad-d num">${mdw(parse(r.d))}</span><span class="ad-chips">${r.ex?`<span class="chip ${r.exOk?"ok":""}">🏃 ${esc(r.ex)}</span>`:""}${r.kcal!=null?`<span class="chip ${r.kOk?"ok":"bad"}">🍙 ${fmt(r.kcal)}kcal</span>`:""}${r.w!=null?`<span class="chip">⚖️ ${r.w}kg</span>`:""}</span><span class="xp">+${r.xp}</span></li>`).join("")||'<li class="muted">아직 기록이 없어요.</li>';
 }
+
+/* ===== 접고 펴기: 휴대폰에선 한 번에 한 칸만, PC에선 모두 펼쳐 여러 줄로 ===== */
+const ACC_WIDE=window.matchMedia?window.matchMedia("(min-width:900px)"):{matches:false,addEventListener(){}};
+function initAccordion(){
+  const SKIP=["s-title","s-setup","s-home","s-record","s-settings"],OPEN={"s-today":1};
+  document.querySelectorAll("section.screen").forEach(sec=>{
+    if(SKIP.includes(sec.id))return;
+    const boxes=[...sec.children].filter(el=>el.classList.contains("box")&&!el.classList.contains("fold"));
+    if(boxes.length<2)return;
+    sec.classList.add("acc");
+    boxes.forEach((bx,i)=>{
+      let h=[...bx.children].find(el=>el.tagName==="H2");
+      if(!h){h=document.createElement("h2");h.textContent=bx.dataset.accTitle||"";bx.prepend(h)}
+      const body=document.createElement("div");body.className="acc-b";
+      [...bx.childNodes].filter(n=>n!==h).forEach(n=>body.appendChild(n));bx.appendChild(body);
+      const t=document.createElement("span");t.className="acc-t";[...h.childNodes].forEach(n=>t.appendChild(n));h.appendChild(t);
+      h.classList.add("acc-h");h.setAttribute("role","button");h.tabIndex=0;
+      const sum=document.createElement("span");sum.className="acc-s";h.appendChild(sum);
+      const open=i===(OPEN[sec.id]||0);bx.classList.toggle("open",open);h.setAttribute("aria-expanded",String(open));
+      const toggle=()=>{if(ACC_WIDE.matches)return;const willOpen=!bx.classList.contains("open");
+        boxes.forEach(o=>{o.classList.remove("open");o.querySelector(".acc-h").setAttribute("aria-expanded","false")});
+        if(willOpen){bx.classList.add("open");h.setAttribute("aria-expanded","true");setTimeout(()=>bx.scrollIntoView({block:"nearest",behavior:"smooth"}),30)}};
+      h.addEventListener("click",e=>{if(e.target.closest("button,a,select,input"))return;toggle()});
+      h.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle()}});
+    })});
+}
+function accSum(el,text){const bx=el&&el.closest(".box");if(!bx)return;const s=bx.querySelector(".acc-h .acc-s");if(s)s.textContent=text||""}
 
 function toastUndo(t,fn){const el=$("toast");el.innerHTML="";el.append(t);const b=document.createElement("button");b.type="button";b.className="undo";b.textContent="되돌리기";
   b.onclick=()=>{clearTimeout(toast._t);el.classList.remove("on");fn()};el.append(b);el.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("on"),6000)}
@@ -1409,7 +1463,7 @@ function drawAll(){
     const k=c.dataset.kind||(["title","lvup","setup"].includes(c.dataset.hero)?"default":(M?(dressOverride||M.auto):"default"));
     const bm=M?M.bmi:21;drawHero(c.getContext("2d"),k,frame,bm,M?M.crown:false,lk)});
 }
-initForms();rebuild();route();
+initAccordion();initForms();rebuild();route();
 if(!reduced)setInterval(()=>{frame^=1;drawAll()},420);
 
 function BMI_STD(b){return b<18.5?"저체중":b<23?"정상":b<25?"과체중(비만 전단계)":b<30?"비만 1단계":b<35?"비만 2단계":"고도비만"}
