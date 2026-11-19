@@ -799,7 +799,7 @@ function renderStats(){
   const prevW=ws.length>1?ws[ws.length-2].w:(ws.length?P.start:null);
   const wUp=M.G.dir>0||(M.G.dir===0&&cur<P.goal);
   const rows=[{ico:"HP",c:"var(--pink)",name:"체중",val:cur.toFixed(1)+"kg",d:dlt(cur,prevW,wUp,"kg")+" <span class='muted'>지난 기록 대비</span>",note:(M.G.dir===0?"유지 "+P.goal+"±"+BAND+"kg":"목표 "+P.goal+"kg"),pct:M.G.dir===0?Math.max(0.05,1-Math.abs(cur-P.goal)/(BAND*3)):M.G.metric==="smm"?0.5:Math.max(0,Math.min(1,(cur-P.start)*M.G.dir/Math.max(0.1,Math.abs(P.goal-P.start))))},
-    {ico:"BMI",c:"#b9a6ff",name:"체형 · "+bodyOf(bmi).label,val:bmi.toFixed(1),d:bodyScale(bmi),note:"키 "+P.height+"cm · 보통은 18.5~22.9",pct:Math.max(0,Math.min(1,1-(bmi-22.9)/15))}];
+    {ico:"BMI",c:"#b9a6ff",name:"체형 · "+bodyOf(bmi).label,val:bmi.toFixed(1),d:bodyScale(bmi),note:"키 "+P.height+"cm · 대한비만학회 기준 "+BMI_STD(bmi),pct:Math.max(0,Math.min(1,1-(bmi-22.9)/15))}];
   const add=(k,ico,c,name,unit,goodUp,note,pctF)=>{const l=lastWith(k);
     if(!l){rows.push({ico,c:"#4a4580",name,val:"🔒",d:'<span class="muted">인바디를 기록하면 열려요</span>',note:"",pct:0});return}
     const p=prevWith(k),f=firstWith(k);rows.push({ico,c,name,val:(k==="vis"?"Lv.":"")+(+l[k]).toFixed(k==="bmr"||k==="vis"?0:1)+unit,d:dlt(l[k],p?p[k]:null,goodUp,unit)+(p?" <span class='muted'>지난 측정 대비</span>":""),note,pct:pctF(l[k],f[k])})};
@@ -1412,6 +1412,7 @@ function drawAll(){
 initForms();rebuild();route();
 if(!reduced)setInterval(()=>{frame^=1;drawAll()},420);
 
+const BMI_STD=b=>b<18.5?"저체중":b<23?"정상":b<25?"과체중(비만 전단계)":b<30?"비만 1단계":b<35?"비만 2단계":"고도비만";
 /* ================= pixel art ================= */
 /* 체형 5단계 (BMI, 대한비만학회 기준 18.5/23/25 + 17 미만 매우 마름) */
 function bodyOf(bmi){const T=[[17,"매우 마름",10],[18.5,"약간 마름",12],[23,"보통",14],[25,"통통",18],[Infinity,"뚱뚱",22]];let i=T.findIndex(t=>bmi<t[0]);if(i<0)i=2;return{i,max:T[i][0],label:T[i][1],w:T[i][2]}}
@@ -1431,7 +1432,7 @@ function drawHero(ctx,kind,f,bmi,crown,look){
     P(0,40,W,6,"#8fd46f");P(0,46,W,10,"#c9c3b8");for(let x=f*6;x<W;x+=12)P(x,50,6,1,"#fff")}
   else{P(0,0,W,46,"#f6ead2");for(let x=0;x<W;x+=8)P(x,0,1,46,"#efdfc2");
   P(0,46,W,10,C.floor);for(let x=f*4;x<W;x+=8)P(x,48,4,1,C.floor2)}
-  const male=look.gender==="m";const bw=bodyOf(bmi).w+(male?2:0); // BMI 체형 5단계·성별에 따라 몸통 폭
+  const male=look.gender==="m";const bw=bodyOf(bmi).w; // BMI 체형 5단계에 따라 몸통 폭 (성별 상관없이 같은 기준)
   let dy=0;
   if(kind==="rope"&&f)dy=-3;
   // props behind
